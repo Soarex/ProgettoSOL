@@ -19,7 +19,6 @@ void* processClient(void* client);
 
 int main()
 {
-	unlink(SOCKNAME);
 	int serverSocket = initServer();
 	listenForClients(serverSocket);
 
@@ -38,7 +37,11 @@ int initServer()
 	address.sun_family = AF_UNIX;
 
 	printf("Binding\n");
-	CHECK(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)));
+	if (bind(serverSocket, (struct sockaddr*) & address, sizeof(address)) == -1)
+	{
+		unlink(SOCKNAME);
+		CHECK(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)));
+	}
 
 	return serverSocket;
 }
