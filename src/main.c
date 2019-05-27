@@ -9,9 +9,9 @@
 #include <stdlib.h>
 
 #define UNIX_PATH_MAX 108
-#define SOCKNAME "./socket"
+#define SOCKNAME "/temp/socket"
 
-#define CHECK(x) if (x == -1) perror("Error");
+#define CHECK(x) if (x == -1) perror("Errore Server");
 
 int initServer();
 int listenForClients(int socket);
@@ -19,14 +19,13 @@ void* processClient(void* client);
 
 int main()
 {
-	system("rm socket");
-
+	unlink(SOCKNAME);
 	int serverSocket = initServer();
 	listenForClients(serverSocket);
 
 	close(serverSocket);
-	system("rm socket");
-    return 0;
+	unlink(SOCKNAME);
+	return 0;
 }
 
 int initServer() 

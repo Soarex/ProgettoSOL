@@ -7,10 +7,10 @@
 #include <sys/un.h>
 #include <error.h>
 
-#define CHECK(x) if (x == -1) perror("Error");
+#define CHECK(x) if (x == -1) perror("Errore client");
 
 #define UNIX_PATH_MAX 108
-#define SOCKNAME "./socket"
+#define SOCKNAME "/temp/socket"
 
 int connectToServer() 
 {
@@ -22,7 +22,8 @@ int connectToServer()
 
 	CHECK(bind(socketDescriptor, (struct sockaddr*) & address, sizeof(address)));
 
-	while (connect(socketDescriptor, (struct sockaddr*) & address, sizeof(address)) == -1) {
+	while (connect(socketDescriptor, (struct sockaddr*) & address, sizeof(address)) == -1) 
+	{
 		printf("Server non disponibile, nuovo tentativo tra 1 secondo \n");
 		sleep(1);
 	}
