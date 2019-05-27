@@ -7,10 +7,12 @@
 #include <sys/un.h>
 #include <error.h>
 
-#define UNIX_PATH_MAX 108
-#define SOCKNAME "./mysockmomo"
+#define CHECK(x) if (x == -1) perror("Error");
 
-int main()
+#define UNIX_PATH_MAX 108
+#define SOCKNAME "./socket"
+
+int connectToServer() 
 {
 	int socketDescriptor = socket(AF_UNIX, SOCK_STREAM, 0);
 
@@ -18,8 +20,19 @@ int main()
 	strncpy(address.sun_path, SOCKNAME, UNIX_PATH_MAX);
 	address.sun_family = AF_UNIX;
 
-	bind(socketDescriptor, (struct sockaddr*) &address, sizeof(address));
-	connect(socketDescriptor, (struct sockaddr*) &address, sizeof(address));
+	CHECK(bind(socketDescriptor, (struct sockaddr*) & address, sizeof(address)));
+
+	while (connect(socketDescriptor, (struct sockaddr*) & address, sizeof(address)) == -1) {
+		printf("Server non disponibile, nuovo tentativo tra 1 secondo \n");
+		sleep(1);
+	}
+
+	return socketDescriptor;
+}
+
+int main()
+{
+	int socketDescriptor = connectToServer();
 
 	write(socketDescriptor, "Ciao", 5);
 	close(socketDescriptor);
