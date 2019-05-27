@@ -20,8 +20,6 @@ int connectToServer()
 	strncpy(address.sun_path, SOCKNAME, UNIX_PATH_MAX);
 	address.sun_family = AF_UNIX;
 
-	CHECK(bind(socketDescriptor, (struct sockaddr*) & address, sizeof(address)));
-
 	while (connect(socketDescriptor, (struct sockaddr*) & address, sizeof(address)) == -1) 
 	{
 		printf("Server non disponibile, nuovo tentativo tra 1 secondo \n");
