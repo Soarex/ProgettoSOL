@@ -10,7 +10,7 @@
 #define CHECK(x) if (x == -1) perror("Errore client");
 
 #define UNIX_PATH_MAX 108
-#define SOCKNAME "temp/socket"
+#define SOCKNAME "socket"
 
 int connectToServer() 
 {
