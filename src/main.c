@@ -11,7 +11,7 @@
 #define UNIX_PATH_MAX 108
 #define SOCKNAME "/temp/socket"
 
-#define CHECK(x) if (x == -1) perror("Errore Server");
+#define CHECK(x) if (x != 0) perror("Errore Server");
 
 int initServer();
 int listenForClients(int socket);
@@ -23,7 +23,7 @@ int main()
 	listenForClients(serverSocket);
 
 	close(serverSocket);
-	unlink(SOCKNAME);
+	//unlink(SOCKNAME);
 	return 0;
 }
 
@@ -37,11 +37,7 @@ int initServer()
 	address.sun_family = AF_UNIX;
 
 	printf("Binding\n");
-	if (bind(serverSocket, (struct sockaddr*) & address, sizeof(address)) == -1)
-	{
-		unlink(SOCKNAME);
-		CHECK(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)));
-	}
+	CHECK(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)));
 
 	return serverSocket;
 }
@@ -54,7 +50,7 @@ int listenForClients(int serverSocket)
 	{
 		CHECK(listen(serverSocket, SOMAXCONN));
 		clientSocket = accept(serverSocket, NULL, 0);
-		CHECK(serverSocket);
+		CHECK(clientSocket);
 		printf("Client accettato\n");
 
 		CHECK(pthread_create(&thread, NULL, &processClient, (void*)clientSocket));
