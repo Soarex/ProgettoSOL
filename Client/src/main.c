@@ -7,10 +7,10 @@
 #include <sys/un.h>
 #include <error.h>
 
-#define CHECK(x) if (x != 0) perror("Errore client");
+#define CHECK(x) if (x == -1) perror("Errore client");
 
 #define UNIX_PATH_MAX 108
-#define SOCKNAME "/temp/socket"
+#define SOCKNAME "temp/socket"
 
 int connectToServer() 
 {

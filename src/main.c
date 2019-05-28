@@ -9,9 +9,9 @@
 #include <stdlib.h>
 
 #define UNIX_PATH_MAX 108
-#define SOCKNAME "/temp/socket"
+#define SOCKNAME "temp/socket"
 
-#define CHECK(x) if (x != 0) perror("Errore Server");
+#define CHECK(x) if (x == -1) perror("Errore Server");
 
 int initServer();
 int listenForClients(int socket);
@@ -23,11 +23,11 @@ int main()
 	listenForClients(serverSocket);
 
 	close(serverSocket);
-	//unlink(SOCKNAME);
+	unlink(SOCKNAME);
 	return 0;
 }
 
-int initServer() 
+int initServer()
 {
 	int serverSocket = socket(AF_UNIX, SOCK_STREAM, 0);
 	CHECK(serverSocket);
@@ -37,7 +37,13 @@ int initServer()
 	address.sun_family = AF_UNIX;
 
 	printf("Binding\n");
-	CHECK(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)));
+
+	if(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)) == -1) {
+		unlink(SOCKNAME);
+		CHECK(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)));
+	}
+
+	CHECK(listen(serverSocket, SOMAXCONN));
 
 	return serverSocket;
 }
@@ -48,10 +54,9 @@ int listenForClients(int serverSocket)
 	pthread_t thread;
 	while (1)
 	{
-		CHECK(listen(serverSocket, SOMAXCONN));
 		clientSocket = accept(serverSocket, NULL, 0);
 		CHECK(clientSocket);
-		printf("Client accettato\n");
+		printf("Server: Client accettato\n");
 
 		CHECK(pthread_create(&thread, NULL, &processClient, (void*)clientSocket));
 	}
@@ -69,7 +74,7 @@ void* processClient(void* client)
 	{
 		CHECK(n);
 		buffer[n] = '\0';
-		printf("%s\n", buffer);
+		printf("Server: messaggio ricevuto(%s)\n", buffer);
 	}
 
 	close(clientSocket);
