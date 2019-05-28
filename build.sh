@@ -1,5 +1,4 @@
 #!/bin/bash
 
-gcc src/main.c -o server.out -lpthread
-gcc Client/src/main.c -o client.out -lpthread
-
+gcc Client/src/client.c -o bin/client.out -lpthread
+gcc Server/src/server.c -o bin/server.out -lpthread
