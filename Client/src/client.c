@@ -1,16 +1,50 @@
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <error.h>
+#include "client.h"
 
-#define CHECK(x) if (x == -1) perror("Errore client");
+int main()
+{
+	int socketDescriptor = connectToServer();
+	char command[150], name[150], length[150], data[150];
+	int input;
 
-#define UNIX_PATH_MAX 108
-#define SOCKNAME "socket"
+	do {
+		printf("Inserire input: ");
+		scanf("%d", &input);
+		switch (input) {
+		case 1:
+			printf("Inserire nome per register: ");
+			scanf("%s", &name);
+			sprintf(command, "REGISTER %s \n", name);
+			break;
+
+		case 2:
+			printf("Inserire nome, lunghezza e data per store: ");
+			scanf("%s %s %s", &name, &length, &data);
+			sprintf(command, "STORE %s %s \n %s", name, length, data);
+			break;
+
+		case 3:
+			printf("Inserire nome per retrieve: ");
+			scanf("%s", &name);
+			sprintf(command, "RETRIEVE %s \n", name);
+			break;
+
+		case 4:
+			printf("Inserire nome per delete: ");
+			scanf("%s", &name);
+			sprintf(command, "DELETE %s \n", name);
+			break;
+
+		case 0:
+			sprintf(command, "LEAVE \n");
+			break;
+		}
+
+		write(socketDescriptor, command, strlen(command));
+	} while (input != 0);
+
+	close(socketDescriptor);
+	return 0;
+}
 
 int connectToServer() 
 {
@@ -22,18 +56,9 @@ int connectToServer()
 
 	while (connect(socketDescriptor, (struct sockaddr*) & address, sizeof(address)) == -1) 
 	{
-		printf("Server non disponibile, nuovo tentativo tra 1 secondo \n");
+		LOG("Server non disponibile, nuovo tentativo tra 1 secondo", WARNING);
 		sleep(1);
 	}
 
 	return socketDescriptor;
-}
-
-int main()
-{
-	int socketDescriptor = connectToServer();
-
-	write(socketDescriptor, "Ciao", 5);
-	close(socketDescriptor);
-	return 0;
 }
