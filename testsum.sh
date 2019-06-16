@@ -26,21 +26,21 @@ fallimentiTre=0
 
 while read -u 4 -r line; do
     temp=( $line )
-    if [ ${temp[0]} == 1 ]; then
+    if [ "${temp[0]}" == "1" ]; then
         tipoUnoLanciati=$(( tipoUnoLanciati + 1 ))
         testUno=$(expr $testUno + ${temp[1]})
         successiUno=$(expr $successiUno + ${temp[2]})
         fallimentiUno=$(expr $fallimentiUno + ${temp[3]})
     fi
 
-    if [ ${temp[0]} == 2 ]; then
+    if [ "${temp[0]}" == "2" ]; then
         tipoDueLanciati=$(( tipoDueLanciati + 1 ))
         testDue=$(expr $testDue + ${temp[1]})
         successiDue=$(expr $successiDue + ${temp[2]})
         fallimentiDue=$(expr $fallimentiDue + ${temp[3]})
     fi
 
-    if [ ${temp[0]} == 3 ]; then
+    if [ "${temp[0]}" == "3" ]; then
         tipoTreLanciati=$(( tipoTreLanciati + 1 ))
         testTre=$(expr $testTre + ${temp[1]})
         successiTre=$(expr $successiTre + ${temp[2]})

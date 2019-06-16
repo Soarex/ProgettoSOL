@@ -23,18 +23,14 @@ int process_message(char* message, int bytes, Command* out) {
 	int i = 0, j = 0;
 	char temp[MAX_NAME_SIZE];
 
-	LOG("Pre 1", INFO);
 	while (message[i] != ' ' && message[i] != '\0') {
 		temp[i] = message[i];
 		i++;
 	}
-	LOG("Post 1", INFO);
 	
 	temp[i] = '\0';
-		LOG("Pre 3", INFO);
 
 	i++;
-
 	if (strcmp(temp, "REGISTER") == 0) {
 		out->type = REGISTER;
 		if(get_name(message + i, out) == -1) return 0;
@@ -43,8 +39,8 @@ int process_message(char* message, int bytes, Command* out) {
 	
 	if (strcmp(temp, "STORE") == 0) {
 		out->type = STORE;
-
 		if ((j = get_name(message + i, out)) == -1) return 0;
+
 		i += j;
 
 		size_t a;
@@ -58,7 +54,6 @@ int process_message(char* message, int bytes, Command* out) {
 		out->data = malloc(a);
 		
 		return i + 3;
-		LOG("Post 3", INFO);
 	}
 
 	if (strcmp(temp, "RETRIEVE") == 0) {

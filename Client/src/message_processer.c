@@ -13,7 +13,6 @@ int process_message(char* message, Command* out) {
 		i++;
 	}
 
-	if (message[i] == '\0') return 0;
 	temp[i] = '\0';
 
 	i++;

@@ -40,7 +40,7 @@ int os_connect(char* name) {
 
 	case KO:
 		sprintf(buffer, "Errore durante connect: %s", command.message);
-		LOG(buffer, ERROR);
+		//LOG(buffer, ERROR);
 		close(socketServer);
 		socketServer = 0;
 		return 0;

@@ -13,7 +13,11 @@ int main(int argc, char** argv) {
 	int operazioniErrore = 0;
 	char nomeBlocco[20]; unsigned char* data;
 
-	if (!os_connect(nome)) exit(EXIT_FAILURE);
+	if (!os_connect(nome)) {
+		printf("%d %d %d %d\n", numeroTest, numeroOperazioni, operazioniSuccesso, operazioniErrore);
+		exit(EXIT_FAILURE);
+	}
+
 
 	switch (numeroTest) {
 	case 1:
