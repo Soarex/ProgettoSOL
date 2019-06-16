@@ -98,6 +98,7 @@ void* os_retrieve(char* name) {
 		socketServer = 0;
 		return NULL;
 	}
+	
 	process_message(buffer, &command);
 	switch (command.type) {
 	case KO:

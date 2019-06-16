@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
 	int numeroOperazioni = 0;
 	int operazioniSuccesso = 0;
 	int operazioniErrore = 0;
-	char nomeBlocco[20]; char* data;
+	char nomeBlocco[20]; unsigned char* data;
 
 	if (!os_connect(nome)) exit(EXIT_FAILURE);
 	switch (numeroTest) {
@@ -30,6 +30,7 @@ int main(int argc, char** argv) {
 
 			numeroOperazioni++;
 			free(data);
+			usleep(1000);
 		}
 		break;
 
@@ -39,21 +40,24 @@ int main(int argc, char** argv) {
 			sprintf(nomeBlocco, "Blocco_%d", i);
 			data = malloc(100 + 5000 * i);
 
-			if (!(data = (char*)os_retrieve(nomeBlocco))) {
+			if (!(data = (unsigned char*)os_retrieve(nomeBlocco))) {
 				operazioniErrore++;
 				numeroOperazioni++;
 				break;
 			}
 	
 			test = 0;
-			for (int j = 0; j < 100 + 5000 * i; j++)
+			for (int j = 0; j < 100 + 5000 * i; j++) {
 				test += data[j] != j % 256;
+			}
+			
 			if(test == 0)
 				operazioniSuccesso++;
 			else
 				operazioniErrore++;
 			numeroOperazioni++;
 			free(data);
+			usleep(1000);
 		}
 		break;
 
