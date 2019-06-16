@@ -29,10 +29,9 @@ int process_message(char* message, int bytes, Command* out) {
 		i++;
 	}
 	LOG("Post 1", INFO);
-
-	if (message[i] == '\0') return 0;
 	
 	temp[i] = '\0';
+		LOG("Pre 3", INFO);
 
 	i++;
 
@@ -43,7 +42,6 @@ int process_message(char* message, int bytes, Command* out) {
 	}
 	
 	if (strcmp(temp, "STORE") == 0) {
-		LOG("Pre 3", INFO);
 		out->type = STORE;
 
 		if ((j = get_name(message + i, out)) == -1) return 0;
