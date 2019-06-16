@@ -27,10 +27,12 @@ int os_connect(char* name) {
 
 	sprintf(buffer, "REGISTER %s \n", name);
 	if(write(socketServer, buffer, strlen(buffer)) == -1) return 0;
+	memset(buffer, 0, BUFFER_SIZE);
 	if(read(socketServer, buffer, BUFFER_SIZE) <= 0) return 0;
+	
 
 	process_message(buffer, &command);
-	
+	memset(buffer, 0, BUFFER_SIZE);
 	switch (command.type) {
 	case OK:
 		return 1;
@@ -50,24 +52,25 @@ int os_connect(char* name) {
 		return 0;
 		break;
 	}
-	
+	memset(buffer, 0, BUFFER_SIZE);
 	return 0;
 }
 
 int os_store(char* name, void* block, size_t len) {
 	if (socketServer == 0) return 0;
-
+	memset(buffer, 0, BUFFER_SIZE);
 	char* t = (char*)&len;
 	sprintf(buffer, "STORE %s %c%c%c%c%c%c%c%c \n ", name, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
+	
 	if(write(socketServer, buffer, 5 + 1 + strlen(name) + 1 + 8 + 3) == -1) return 0;
 	if(write(socketServer, block, len) == -1) return 0;
-
+	memset(buffer, 0, BUFFER_SIZE);
 	if (read(socketServer, buffer, BUFFER_SIZE) <= 0) {
 		socketServer = 0;
 		return 0;
 	}
+	
 	process_message(buffer, &command);
-
 	switch (command.type) {
 	case OK:
 		return 1;
@@ -85,21 +88,26 @@ int os_store(char* name, void* block, size_t len) {
 		return 0;
 		break;
 	}
+	memset(buffer, 0, BUFFER_SIZE);
 }
 
 void* os_retrieve(char* name) {
-	if (socketServer == 0) return 0;
+	if (socketServer == 0) return NULL;
+	memset(buffer, 0, BUFFER_SIZE);
 
 	sprintf(buffer, "RETRIEVE %s \n", name);
 	if (write(socketServer, buffer, strlen(buffer)) == -1) return NULL;
 
 	int bytes = read(socketServer, buffer, BUFFER_SIZE);
 	if (bytes <= 0) {
-		socketServer = 0;
+		os_disconnect();
 		return NULL;
 	}
 	
-	process_message(buffer, &command);
+	int res = process_message(buffer, &command);
+	if (!res) return NULL;
+	if (command.data_length <= 0) return NULL;
+
 	switch (command.type) {
 	case KO:
 		sprintf(buffer, "Errore durante retrieve: %s", command.message);
@@ -115,10 +123,10 @@ void* os_retrieve(char* name) {
 			((char*)command.data)[j] = buffer[i];
 			j++;
 		}
-
+		
 		if(command.data_length - j > 0)
 			read(socketServer, ((char*)command.data) + j, command.data_length - j);
-
+		
 		return command.data;
 		break;
 
@@ -129,11 +137,13 @@ void* os_retrieve(char* name) {
 		break;
 	}
 	
+	memset(buffer, 0, BUFFER_SIZE);
 	return NULL;
 }
 
 int os_delete(char* name) {
 	if (socketServer == 0) return 0;
+	memset(buffer, 0, BUFFER_SIZE);
 
 	sprintf(buffer, "DELETE %s \n", name);
 	if(write(socketServer, buffer, strlen(buffer)) == -1) return 0;
@@ -162,10 +172,12 @@ int os_delete(char* name) {
 	}
 	
 	return 0;
+	memset(buffer, 0, BUFFER_SIZE);
 }
 
 int os_disconnect() {
 	if (socketServer == 0) return 0;
+	memset(buffer, 0, BUFFER_SIZE);
 
 	if(write(socketServer, "LEAVE \n", 8) == -1) return 0;
 	if (read(socketServer, buffer, BUFFER_SIZE) <= 0) {
@@ -186,10 +198,11 @@ int os_disconnect() {
 
 	default:
 	case UNKNOWN:
-		LOG("Formato messaggio non riconosciuto", ERROR);
+		//LOG("Formato messaggio non riconosciuto", ERROR);
 		return 0;
 		break;
 	}
 
+	memset(buffer, 0, BUFFER_SIZE);
 	return 0;
 }

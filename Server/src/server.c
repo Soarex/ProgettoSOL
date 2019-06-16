@@ -109,8 +109,7 @@ void* processClient(void* client)
 	int bytes, temp; 
 
 	while (status == 1 && running == 1) {
-		if ((bytes = read(clientSocket, buffer, 500)) == 0) {
-			LOG("Connessione con il client interrotta", WARNING);
+		if ((bytes = read(clientSocket, buffer, BUFFER_SIZE)) == 0) {
 			hash_remove(&clients, clientName);
 			status = 0;
 			close(clientSocket);
@@ -119,10 +118,9 @@ void* processClient(void* client)
 			pthread_mutex_unlock(&lock);
 			break;
 		}
-		
-		//LOG(buffer, INFO);
-		temp = process_message(buffer, bytes, &command);
 
+		temp = process_message(buffer, bytes, &command);
+;
 		switch (command.type) {
 		case REGISTER:
 			pthread_mutex_lock(&lock);
@@ -156,10 +154,10 @@ void* processClient(void* client)
 				}
 
 				if (command.data_length - j > 0)
-					read(clientSocket, ((char*)command.data) + j, command.data_length - j);
+					read(clientSocket, (void*)(((char*)command.data) + j), command.data_length - j);
 
 				res = store(clientName, command.name, command.data, command.data_length);
-
+				
 				switch (res) {
 				case -1:
 					sprintf(buffer, "KO Errore creazione file \n");
@@ -169,12 +167,13 @@ void* processClient(void* client)
 					sprintf(buffer, "KO Errore scrittura file \n");
 					break;
 
-				case 1:
+				default:
 					sprintf(buffer, "OK \n");
 					break;
 				}
+
 				write(clientSocket, buffer, strlen(buffer));
-				
+		
 			}
 			break;
 
@@ -246,11 +245,11 @@ void* processClient(void* client)
 			break;
 
 		case UNKNOWN:
-			status = 0;
 			break;
 		}
+		memset(buffer, 0, BUFFER_SIZE);
 	}
-
+	
 	pthread_exit(0);
 }
 

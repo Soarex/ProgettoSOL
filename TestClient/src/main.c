@@ -14,6 +14,7 @@ int main(int argc, char** argv) {
 	char nomeBlocco[20]; unsigned char* data;
 
 	if (!os_connect(nome)) exit(EXIT_FAILURE);
+
 	switch (numeroTest) {
 	case 1:
 		for (int i = 0; i < 20; i++) {
@@ -30,7 +31,6 @@ int main(int argc, char** argv) {
 
 			numeroOperazioni++;
 			free(data);
-			usleep(1000);
 		}
 		break;
 
@@ -43,9 +43,10 @@ int main(int argc, char** argv) {
 			if (!(data = (unsigned char*)os_retrieve(nomeBlocco))) {
 				operazioniErrore++;
 				numeroOperazioni++;
-				break;
+				continue;
 			}
-	
+			
+		
 			test = 0;
 			for (int j = 0; j < 100 + 5000 * i; j++) {
 				test += data[j] != j % 256;
@@ -57,7 +58,6 @@ int main(int argc, char** argv) {
 				operazioniErrore++;
 			numeroOperazioni++;
 			free(data);
-			usleep(1000);
 		}
 		break;
 

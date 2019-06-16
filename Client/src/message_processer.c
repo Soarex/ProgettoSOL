@@ -52,7 +52,7 @@ int process_message(char* message, Command* out) {
 
 		out->data_length = a;
 		out->data = malloc(out->data_length);
-
+		if (!out->data) return 0;
 		return 1;
 	}
 
