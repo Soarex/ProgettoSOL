@@ -1,1 +1,0 @@
-START wsl ./bin/client.out
