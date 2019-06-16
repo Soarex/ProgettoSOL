@@ -10,8 +10,6 @@ typedef struct {
 	int size;
 }storage_status;
 
-static storage_status status;
-
 int init_store();
 int store(char* clientName, char* blockName, void* data, size_t size);
 size_t retrieve(char* clientName, char* blockName, void** dataOut);

@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 			
 			if (os_store(nomeBlocco, (void*)data, 100 + 5000 * i))
 				operazioniSuccesso++;
-			else
+			else 
 				operazioniErrore++;
 
 			numeroOperazioni++;
@@ -35,18 +35,17 @@ int main(int argc, char** argv) {
 
 	case 2:
 		for (int i = 0; i < 20; i++) {
+			int test;
 			sprintf(nomeBlocco, "Blocco_%d", i);
 			data = malloc(100 + 5000 * i);
 
-			LOG("Prima", INFO);
 			if (!(data = (char*)os_retrieve(nomeBlocco))) {
 				operazioniErrore++;
 				numeroOperazioni++;
 				break;
 			}
-			LOG("dopo", INFO);
 	
-			int test;
+			test = 0;
 			for (int j = 0; j < 100 + 5000 * i; j++)
 				test += data[j] != j % 256;
 			if(test == 0)
@@ -77,9 +76,7 @@ int main(int argc, char** argv) {
 		break;
 	}
 
-	char buffer[100];
-	sprintf(buffer, "Test effettuati: %d, Successo: %d, Falliti: %d", numeroOperazioni, operazioniSuccesso, operazioniErrore);
-	LOG(buffer, INFO);
+	printf("%d %d %d %d\n", numeroTest, numeroOperazioni, operazioniSuccesso, operazioniErrore);
 	os_disconnect();
 	return 0;
 }

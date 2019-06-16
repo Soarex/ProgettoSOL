@@ -55,10 +55,11 @@ int setSignalHandlers() {
 
 int initServer() {
 	setSignalHandlers();
+	pthread_mutex_init(&lock, NULL);
 	hash_init(&clients);
 	init_store();
 
-	if (pthread_create(&signalProcesser, NULL, &processSignals, NULL) == -1) return -5;
+	//if (pthread_create(&signalProcesser, NULL, &processSignals, NULL) == -1) return -5;
 
 	struct stat st;
 	memset(&st, 0, sizeof(st));
@@ -113,16 +114,20 @@ void* processClient(void* client)
 			hash_remove(&clients, clientName);
 			status = 0;
 			close(clientSocket);
+			pthread_mutex_lock(&lock);
 			clientConnessi--;
+			pthread_mutex_unlock(&lock);
 			break;
 		}
-
-		temp = process_message(buffer, bytes, &command);
-		LOG(command.name, INFO);
 		
+		//LOG(buffer, INFO);
+		temp = process_message(buffer, bytes, &command);
+
 		switch (command.type) {
 		case REGISTER:
+			pthread_mutex_lock(&lock);
 			if (hash_get(&clients, command.name) != -1) {
+				pthread_mutex_unlock(&lock);
 				sprintf(buffer, "KO Utente gia` registrato \n");
 				write(clientSocket, buffer, strlen(buffer));
 				close(clientSocket);
@@ -130,8 +135,11 @@ void* processClient(void* client)
 			} else {
 				strcpy(clientName, command.name);
 				hash_insert(&clients, clientName, clientSocket);
+				pthread_mutex_unlock(&lock);
 				write(clientSocket, "OK \n", 4);
+				pthread_mutex_lock(&lock);
 				clientConnessi++;
+				pthread_mutex_unlock(&lock);
 			}
 			break;
 
@@ -193,7 +201,7 @@ void* processClient(void* client)
 				default:;
 					char* t = (char*)& size;
 					sprintf(buffer, "DATA %c%c%c%c%c%c%c%c \n ", t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
-					write(clientSocket, buffer, strlen(buffer));
+					write(clientSocket, buffer, 4 + 1 + 8 + 3);
 					write(clientSocket, data, size);
 					free(data);
 					break;
@@ -232,7 +240,9 @@ void* processClient(void* client)
 			status = 0;
 			write(clientSocket, "OK \n", 4);
 			close(clientSocket);
+			pthread_mutex_lock(&lock);
 			clientConnessi--;
+			pthread_mutex_unlock(&lock);
 			break;
 
 		case UNKNOWN:

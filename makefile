@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -std=gnu99 -pedantic 
+CFLAGS = -std=gnu99 -pedantic -Wall
 client_objects = client.o message_processer_client.o
 server_objects = message_processer_server.o hash_table.o object_store.o server.o
 objects = $(client_objects) $(server_objects)
@@ -10,7 +10,7 @@ test_client_path = TestClient/src/
 client_include = -I$(client_path)
 server_include = -I$(server_path)
 
-.PHONY : all clean cleanall
+.PHONY : all clean test
 
 all: $(bins)
 
@@ -42,7 +42,9 @@ test_client.out: $(test_client_path)main.c $(client_path)client.h
 	$(CC) $(CFLAGS) $(client_include) $(test_client_path)main.c -o test_client.out -L. -lclient
 
 clean:
-	-rm -f $(objects)
+	-rm -f $(objects) server.out libclient.a test_client.out
 
-cleanall	: clean
-	\rm -f *.o *~ *.a
+test:
+	./test.sh
+
+.ONESHELL:

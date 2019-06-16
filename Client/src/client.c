@@ -1,5 +1,9 @@
 #include "client.h"
 
+static int socketServer = 0;
+static char buffer[BUFFER_SIZE];
+static Command command;
+
 int os_connect(char* name) {
 	if (socketServer != 0) return 0;
 
@@ -55,7 +59,6 @@ int os_store(char* name, void* block, size_t len) {
 
 	char* t = (char*)&len;
 	sprintf(buffer, "STORE %s %c%c%c%c%c%c%c%c \n ", name, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
-
 	if(write(socketServer, buffer, 5 + 1 + strlen(name) + 1 + 8 + 3) == -1) return 0;
 	if(write(socketServer, block, len) == -1) return 0;
 

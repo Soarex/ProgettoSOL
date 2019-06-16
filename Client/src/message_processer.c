@@ -45,11 +45,12 @@ int process_message(char* message, Command* out) {
 
 		size_t a;
 		char* t = (char*)& a;
-		for (int j = 0; j < sizeof(size_t); j++)
+		for (int j = 0; j < sizeof(size_t); j++) {
 			t[j] = message[i];
+			i++;
+		}
 
 		out->data_length = a;
-		printf("%ld\n", a);
 		out->data = malloc(out->data_length);
 
 		return 1;

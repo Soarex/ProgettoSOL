@@ -28,7 +28,9 @@ int process_message(char* message, int bytes, Command* out) {
 		i++;
 	}
 
+
 	if (message[i] == '\0') return 0;
+	
 	temp[i] = '\0';
 
 	i++;
@@ -55,9 +57,8 @@ int process_message(char* message, int bytes, Command* out) {
 
 		out->data_length = a;
 		out->data = malloc(a);
-		i += 3; // salto spazio \n spazio dopo len per arrivare a data
 		
-		return i;
+		return i + 3;
 	}
 
 	if (strcmp(temp, "RETRIEVE") == 0) {

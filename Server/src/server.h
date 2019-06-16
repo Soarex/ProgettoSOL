@@ -1,7 +1,6 @@
 #pragma once
 
 #include "utils.h"
-#include <pthread.h>
 #include <signal.h>
 #include <sys/socket.h>
 #include "object_store.h"
@@ -13,7 +12,8 @@
 #define BUFFER_SIZE 500
 
 static hash_table clients;
-static pthread_t signalProcesser;
+static pthread_mutex_t lock;
+//static pthread_t signalProcesser;
 volatile sig_atomic_t print = 0;
 volatile sig_atomic_t running = 1;
 static int clientConnessi = 0;
