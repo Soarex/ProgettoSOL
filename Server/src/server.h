@@ -1,54 +1,28 @@
 #pragma once
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+
+#include "utils.h"
 #include <pthread.h>
-#include <sys/types.h>
+#include <signal.h>
 #include <sys/socket.h>
-#include <sys/un.h>
-#include <error.h>
-#include <stdlib.h>
+#include "object_store.h"
+#include "message_processer.h"
+#include "hash_table.h"
 
 #define UNIX_PATH_MAX 108
-#define SOCKNAME "socket"
+#define SOCKNAME "objstore.sock"
+#define BUFFER_SIZE 500
 
-#define COLOR_RED     "\x1b[31m"
-#define COLOR_GREEN   "\x1b[32m"
-#define COLOR_YELLOW  "\x1b[33m"
-#define COLOR_BLUE    "\x1b[34m"
-#define COLOR_MAGENTA "\x1b[35m"
-#define COLOR_CYAN    "\x1b[36m"
-#define COLOR_RESET   "\x1b[0m"
+static hash_table clients;
+static pthread_t signalProcesser;
+volatile sig_atomic_t print = 0;
+volatile sig_atomic_t running = 1;
+static int clientConnessi = 0;
 
-#define MESSAGE	0
-#define INFO	1
-#define WARNING 2
-#define ERROR	3
+static void signalHandler(int signum);
 
-#define LOG(message, level) \
-	switch(level) { \
-		case INFO:		printf(COLOR_GREEN "Server: %s\n" COLOR_RESET, message); break; \
-		case WARNING:	printf(COLOR_YELLOW "Server: %s\n" COLOR_RESET, message); break; \
-		case ERROR:		printf(COLOR_RED "Server: %s\n" COLOR_RESET, message); break; \
-		default:		printf("Server: %s\n", message); \
-	} \
-	fflush(stdout);
-
-#define CHECK(x) \
-	if (x == -1) { \
-		printf(COLOR_RED "Server, file %s linea %d" COLOR_RESET, __FILE__, __LINE__); \
-		fflush(stdout); \
-		perror(""); \
-	}
-
-
+int setSignalHandlers();
 int initServer();
 int listenForClients(int socket);
 void* processClient(void* client);
-int processMessage(char* message);
-
-void registration(char* name);
-void store(char* name, int length, char* data);
-void retrieve(char* name);
-void delete(char* name);
-void disconnect();
+void* processSignals(void* arg);
+void printStatus();

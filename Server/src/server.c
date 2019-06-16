@@ -1,19 +1,73 @@
 #include "server.h"
 
-int main()
-{
+
+int main() {
 	int serverSocket = initServer();
+	if (serverSocket < 0) {
+		LOG("Errore inizializzazione server", ERROR);
+		exit(EXIT_FAILURE);
+	}
+
 	listenForClients(serverSocket);
 
+	save_status();
 	close(serverSocket);
 	unlink(SOCKNAME);
+	
 	return 0;
 }
 
-int initServer()
-{
+static void signalHandler(int signum) {
+	if (signum == SIGUSR1) {
+		printStatus();
+		print = 1;
+	}
+	else {
+		save_status();
+		running = 0;
+		_exit(EXIT_FAILURE);
+	}
+	
+}
+
+
+int setSignalHandlers() {
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+
+	sigaction(SIGINT, NULL, &sa);
+	sa.sa_handler = signalHandler;
+	sigaction(SIGINT, &sa, NULL);
+
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGQUIT, &sa, NULL);
+
+	sigaction(SIGUSR1, NULL, &sa);
+	sa.sa_handler = signalHandler;
+	sigaction(SIGUSR1, &sa, NULL);
+
+	sa.sa_handler = SIG_IGN;
+	sigaction(SIGPIPE, &sa, NULL);
+	
+	return 1;
+}
+
+
+int initServer() {
+	setSignalHandlers();
+	hash_init(&clients);
+	init_store();
+
+	if (pthread_create(&signalProcesser, NULL, &processSignals, NULL) == -1) return -5;
+
+	struct stat st;
+	memset(&st, 0, sizeof(st));
+	if (stat("data", &st) == -1) {
+		if(mkdir("data", 0700)) return -1;
+	}
+
 	int serverSocket = socket(AF_UNIX, SOCK_STREAM, 0);
-	CHECK(serverSocket);
+	if(serverSocket == -1) return -2;
 
 	struct sockaddr_un address;
 	strncpy(address.sun_path, SOCKNAME, UNIX_PATH_MAX);
@@ -21,26 +75,24 @@ int initServer()
 
 	if(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)) == -1) {
 		unlink(SOCKNAME);
-		CHECK(bind(serverSocket, (struct sockaddr*) & address, sizeof(address)));
+		if (bind(serverSocket, (struct sockaddr*) & address, sizeof(address))) return -3;
 	}
 
-	CHECK(listen(serverSocket, SOMAXCONN));
+	if(listen(serverSocket, SOMAXCONN)) return -4;
 
 	return serverSocket;
 }
 
-int listenForClients(int serverSocket)
-{
+int listenForClients(int serverSocket) {
 	int clientSocket;
 	pthread_t thread;
-	while (1)
-	{
-		LOG("In ascolto", MESSAGE)
+	while (running) {
 		clientSocket = accept(serverSocket, NULL, 0);
-		CHECK(clientSocket);
-		LOG("Client accettato", MESSAGE);
+		if(clientSocket == -1) return -1;
 
-		CHECK(pthread_create(&thread, NULL, &processClient, (void*)clientSocket));
+		int* socket = (int*)malloc(sizeof(int));
+		*socket = clientSocket;
+		if(pthread_create(&thread, NULL, &processClient, (void*)socket) == -1) return -2;
 	}
 
 	return clientSocket;
@@ -48,136 +100,171 @@ int listenForClients(int serverSocket)
 
 void* processClient(void* client)
 {
-	int clientSocket = (int)client;
+	int clientSocket = *((int*)client);
+	int status = 1, res;
+	char clientName[MAX_NAME_SIZE] = "";
+	char buffer[BUFFER_SIZE];
+	Command command;
+	int bytes, temp; 
 
-	char buffer[500];// , message[150];
-	//ssize_t n; 
-	int status = 1;
+	while (status == 1 && running == 1) {
+		if ((bytes = read(clientSocket, buffer, 500)) == 0) {
+			LOG("Connessione con il client interrotta", WARNING);
+			hash_remove(&clients, clientName);
+			status = 0;
+			close(clientSocket);
+			clientConnessi--;
+			break;
+		}
 
-	while (status == 1)
-	{
-		read(clientSocket, buffer, 499);
-		//buffer[n] = '\0';
-		status = processMessage(buffer);
+		temp = process_message(buffer, bytes, &command);
+		LOG(command.name, INFO);
+		
+		switch (command.type) {
+		case REGISTER:
+			if (hash_get(&clients, command.name) != -1) {
+				sprintf(buffer, "KO Utente gia` registrato \n");
+				write(clientSocket, buffer, strlen(buffer));
+				close(clientSocket);
+				status = 0;
+			} else {
+				strcpy(clientName, command.name);
+				hash_insert(&clients, clientName, clientSocket);
+				write(clientSocket, "OK \n", 4);
+				clientConnessi++;
+			}
+			break;
+
+		case STORE:
+			if (clientName[0] == '\0') {
+				sprintf(buffer, "KO Utente non registrato \n");
+				write(clientSocket, buffer, strlen(buffer));
+			} else {
+				int i, j = 0;
+
+				for (i = temp; i < bytes; i++) {
+					((char*)command.data)[j] = buffer[i];
+					j++;
+				}
+
+				if (command.data_length - j > 0)
+					read(clientSocket, ((char*)command.data) + j, command.data_length - j);
+
+				res = store(clientName, command.name, command.data, command.data_length);
+
+				switch (res) {
+				case -1:
+					sprintf(buffer, "KO Errore creazione file \n");
+					break;
+
+				case -2:
+					sprintf(buffer, "KO Errore scrittura file \n");
+					break;
+
+				case 1:
+					sprintf(buffer, "OK \n");
+					break;
+				}
+				write(clientSocket, buffer, strlen(buffer));
+				
+			}
+			break;
+
+		case RETRIEVE:
+			if (clientName[0] == '\0') {
+				sprintf(buffer, "KO Utente non registrato \n");
+				write(clientSocket, buffer, strlen(buffer));
+			} else {
+
+				char* data;
+				size_t size = retrieve(clientName, command.name, (void**)& data);
+
+				switch (size) {
+				case -1:
+					sprintf(buffer, "KO Errore apertura file (possibile file non esistente) \n");
+					write(clientSocket, buffer, strlen(buffer));
+					break;
+
+				case -2:
+					sprintf(buffer, "KO Errore lettura file (possibili dimensioni sbagliate) \n");
+					write(clientSocket, buffer, strlen(buffer));
+					break;
+
+				default:;
+					char* t = (char*)& size;
+					sprintf(buffer, "DATA %c%c%c%c%c%c%c%c \n ", t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
+					write(clientSocket, buffer, strlen(buffer));
+					write(clientSocket, data, size);
+					free(data);
+					break;
+				}
+			}
+			break;
+
+		case DELETE:
+			if (clientName[0] == '\0') {
+				sprintf(buffer, "KO Utente non registrato \n");
+				write(clientSocket, buffer, strlen(buffer));
+			} else {
+
+				res = delete(clientName, command.name);
+
+				switch (res) {
+				case -1:
+					sprintf(buffer, "KO File non esistente \n");
+					break;
+
+				case -2:
+					sprintf(buffer, "KO Errore eliminazione file \n");
+					break;
+
+				case 1:
+					sprintf(buffer, "OK \n");
+					break;
+				}
+
+				write(clientSocket, buffer, strlen(buffer));
+			}
+			break;
+
+		case LEAVE:
+			hash_remove(&clients, clientName);
+			status = 0;
+			write(clientSocket, "OK \n", 4);
+			close(clientSocket);
+			clientConnessi--;
+			break;
+
+		case UNKNOWN:
+			status = 0;
+			break;
+		}
 	}
-
-	close(clientSocket);
 
 	pthread_exit(0);
 }
 
-int processMessage(char* message) {
-	char *command, *name, *length, *data, *terminator;
-
-	if (message == NULL) {
-		LOG("Messaggio nullo, chiusura connessione", ERROR);
-		return 0;
-	}
-
-
-	command = strtok(message, " ");
-	if (command == NULL) {
-		LOG("Formato messaggio non riconosciuto, chiusura connessione", ERROR);
-		return 0;
-	}
-	
-	if (strcmp(command, "LEAVE") == 0) {
-		terminator = strtok(NULL, " ");
-		if (strcmp(terminator, "\n") != 0) LOG("Terminatore assente dal messaggio", WARNING);
-		
-		LOG("Messaggio di LEAVE ricevuto, chiusura connessione", INFO);
-		disconnect();
-		return 0;
-	}
-
-	name = strtok(NULL, " ");
-
-	if (name == NULL) {
-		LOG("Paramentro nome assente, chiusura connessione", ERROR);
-		return 0;
-	}
-
-	if (strcmp(command, "REGISTER") == 0) {
-		terminator = strtok(NULL, " ");
-
-		if (strcmp(terminator, "\n") != 0) LOG("Terminatore assente dal messaggio", WARNING);
-
-		registration(name);
-		return 1;
-	}
-
-	if (strcmp(command, "RETRIEVE") == 0) {
-		terminator = strtok(NULL, " ");
-		if (strcmp(terminator, "\n") != 0) LOG("Terminatore assente dal messaggio", WARNING);
-
-		retrieve(name);
-		return 1;
-	}
-
-	if (strcmp(command, "DELETE") == 0) {
-		terminator = strtok(NULL, " ");
-		if (strcmp(terminator, "\n") != 0) LOG("Terminatore assente dal messaggio", WARNING);
-
-		delete(name);
-		return 1;
-	}
-
-	length = strtok(NULL, " ");
-	if (length == NULL) {
-		LOG("Paramentro lunghezza assente, chiusura connessione", ERROR);
-		return 0;
-	}
-
-	int lunghezza = strtol(length, NULL, 10);
-	
-	if (lunghezza == 0) {
-		LOG("Paramentro lunghezza non valido, chiusura connessione", ERROR);
-		return 0;
-	}
-
-	if (strcmp(command, "STORE") == 0) {
-		terminator = strtok(NULL, " ");
-		if (strcmp(terminator, "\n") != 0) {
-			LOG("Formato STORE non valido, chiusura connessione", ERROR);
-			return 0;
+void* processSignals(void* arg) {
+	while (running) {
+		if (print) {
+			printStatus();
+			print = 0;
 		}
-
-		data = strtok(NULL, " ");
-		if (data == NULL) {
-			LOG("Paramentro data assente, chiusura connessione", ERROR);
-			return 0;
-		}
-
-		store(name, lunghezza, data);
+		sleep(1);
 	}
-		 
-	return 1;
+
+	sleep(1);
+	pthread_exit(0);
 }
 
-void registration(char* name) {
-	char buffer[500];
-	sprintf(buffer, "Registrazione con nome %s", name);
-	LOG(buffer, INFO);
-}
-
-void store(char* name, int length, char* data) {
-	char buffer[150];
-	sprintf(buffer, "Store con nome %s, lunghezza %d, dati[]", name);
-	LOG(buffer, INFO);
-}
-
-void retrieve(char* name) {
-	char buffer[150];
-	sprintf(buffer, "Retrieve con nome %s", name);
-	LOG(buffer, INFO);
-}
-
-void delete(char* name) {
-	char buffer[150];
-	sprintf(buffer, "Delete con nome %s", name);
-	LOG(buffer, INFO);
-}
-
-void disconnect() {
-	
+void printStatus() {
+	char status[200];
+	storage_status* storageStatus = get_status();
+	sprintf(status, "Client connessi: %d, Numero file: %d, Numero cartelle: %d, Size totale: %d",
+		clientConnessi,
+		storageStatus->file_count,
+		storageStatus->directory_count,
+		storageStatus->size
+	);
+	LOG(status, INFO);
 }
