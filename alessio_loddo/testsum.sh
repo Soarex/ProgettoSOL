@@ -24,8 +24,6 @@ fallimentiUno=0
 fallimentiDue=0
 fallimentiTre=0
 
-read -u 4 -r line
-
 while read -u 4 -r line; do
     temp=( $line )
     if [ "${temp[0]}" == "1" ]; then

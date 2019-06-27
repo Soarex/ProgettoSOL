@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
 	int numeroOperazioni = 0;
 	int operazioniSuccesso = 0;
 	int operazioniErrore = 0;
-	char nomeBlocco[20]; byte* data;
+	char nomeBlocco[20]; unsigned char* data;
 
 	if (!os_connect(nome)) {
 		printf("%d %d %d %d\n", numeroTest, numeroOperazioni, operazioniSuccesso, operazioniErrore);
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
 			sprintf(nomeBlocco, "Blocco_%d", i);
 			data = malloc(100 + 5000 * i);
 
-			if (!(data = (byte*)os_retrieve(nomeBlocco))) {
+			if (!(data = (unsigned char*)os_retrieve(nomeBlocco))) {
 				operazioniErrore++;
 				numeroOperazioni++;
 				continue;

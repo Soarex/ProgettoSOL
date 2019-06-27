@@ -3,7 +3,6 @@
 
 int main() {
 	int serverSocket = initServer();
-
 	if (serverSocket < 0) {
 		LOG("Errore inizializzazione server", ERROR);
 		exit(EXIT_FAILURE);
@@ -22,7 +21,8 @@ static void signalHandler(int signum) {
 	if (signum == SIGUSR1) {
 		printStatus();
 		print = 1;
-	} else {
+	}
+	else {
 		save_status();
 		running = 0;
 		_exit(EXIT_FAILURE);
@@ -63,7 +63,6 @@ int initServer() {
 
 	struct stat st;
 	memset(&st, 0, sizeof(st));
-
 	if (stat("data", &st) == -1) {
 		if(mkdir("data", 0700)) return -1;
 	}
@@ -100,12 +99,10 @@ int listenForClients(int serverSocket) {
 	return clientSocket;
 }
 
-void* processClient(void* client) {
+void* processClient(void* client)
+{
 	int clientSocket = *((int*)client);
-	free(client);
-
 	int status = 1, res;
-
 	char clientName[MAX_NAME_SIZE] = "";
 	char buffer[BUFFER_SIZE];
 	Command command;
@@ -113,7 +110,7 @@ void* processClient(void* client) {
 
 	while (status == 1 && running == 1) {
 		if ((bytes = read(clientSocket, buffer, BUFFER_SIZE)) == 0) {
-			//hash_remove(&clients, clientName);
+			hash_remove(&clients, clientName);
 			status = 0;
 			close(clientSocket);
 			//pthread_mutex_lock(&lock);
@@ -126,20 +123,22 @@ void* processClient(void* client) {
 ;
 		switch (command.type) {
 		case REGISTER:
-			/*
+			//pthread_mutex_lock(&lock);
 			if (hash_get(&clients, command.name) != -1) {
+				//pthread_mutex_unlock(&lock);
 				sprintf(buffer, "KO Utente gia` registrato \n");
 				write(clientSocket, buffer, strlen(buffer));
 				close(clientSocket);
 				status = 0;
-			} else { */
+			} else {
 				strcpy(clientName, command.name);
-				//hash_insert(&clients, clientName, clientSocket);
+				hash_insert(&clients, clientName, clientSocket);
+				//pthread_mutex_unlock(&lock);
 				write(clientSocket, "OK \n", 4);
 				//pthread_mutex_lock(&lock);
 				clientConnessi++;
 				//pthread_mutex_unlock(&lock);
-		//	}
+			}
 			break;
 
 		case STORE:
@@ -148,17 +147,14 @@ void* processClient(void* client) {
 				write(clientSocket, buffer, strlen(buffer));
 			} else {
 				int i, j = 0;
+
 				for (i = temp; i < bytes; i++) {
-					((byte*)command.data)[j] = (byte)buffer[i];
+					((char*)command.data)[j] = buffer[i];
 					j++;
 				}
 
-				int dataBytes = j;
-				if (command.data_length - dataBytes > 0)
-					dataBytes += read(clientSocket, (void*)(((byte*)command.data) + dataBytes), command.data_length - dataBytes);
-
-				while(dataBytes != command.data_length)
-					dataBytes += read(clientSocket, (void*)(((byte*)command.data) + dataBytes), 512);
+				if (command.data_length - j > 0)
+					read(clientSocket, (void*)(((char*)command.data) + j), command.data_length - j);
 
 				res = store(clientName, command.name, command.data, command.data_length);
 				
@@ -187,7 +183,7 @@ void* processClient(void* client) {
 				write(clientSocket, buffer, strlen(buffer));
 			} else {
 
-				byte* data;
+				char* data;
 				size_t size = retrieve(clientName, command.name, (void**)& data);
 
 				switch (size) {
@@ -202,9 +198,13 @@ void* processClient(void* client) {
 					break;
 
 				default:;
-					byte* t = (byte*)& size;
+					unsigned char* t = (unsigned char*)& size;
 
 					sprintf(buffer, "DATA %c%c%c%c%c%c%c%c \n ", t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
+					//for (int i = 0; i < 4 + 1 + 8 + 3; i++)
+					//	printf("%d ", buffer[i]);
+
+					//printf("\n");
 
 					write(clientSocket, buffer, 4 + 1 + 8 + 3);
 					write(clientSocket, data, size);
@@ -255,6 +255,7 @@ void* processClient(void* client) {
 		}
 		memset(buffer, 0, BUFFER_SIZE);
 	}
+	LOG("Thread terminato", INFO);
 	pthread_exit(0);
 }
 

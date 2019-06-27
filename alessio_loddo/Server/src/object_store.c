@@ -1,10 +1,11 @@
 #include "object_store.h"
 
-static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t slock;
 static storage_status status;
 
 int init_store() {
 	memset(&status, 0, sizeof(status));
+	//pthread_mutex_init(&slock, NULL);
 
 	struct stat st;
 	memset(&st, 0, sizeof(st));
@@ -41,18 +42,18 @@ int store(char* clientName, char* blockName, void* data, size_t size) {
 
 
 	if (new) {
-		pthread_mutex_lock(&lock);
+		//pthread_mutex_lock(&slock);
 		status.file_count++;
-		pthread_mutex_unlock(&lock);
+		//pthread_mutex_unlock(&slock);
 	}
 
 	if(write(fileDescriptor, &size, sizeof(size_t)) == -1) return -2;
 	if(write(fileDescriptor, data, size) == -1) return -2;
 
-	pthread_mutex_lock(&lock);
+	//pthread_mutex_lock(&slock);
 	if (new) status.size += sizeof(size_t);
 	status.size += size;
-	pthread_mutex_unlock(&lock);
+	//pthread_mutex_unlock(&slock);
 
 	close(fileDescriptor);
 	return 1;
@@ -98,10 +99,10 @@ int delete(char* clientName, char* objectName) {
 
 	if(unlink(path) == -1) return -2;
 
-	pthread_mutex_lock(&lock);
+	//pthread_mutex_lock(&slock);
 	status.file_count--;
 	status.size -= st.st_size;
-	pthread_mutex_unlock(&lock);
+	//pthread_mutex_unlock(&slock);
 	return 1;
 }
 

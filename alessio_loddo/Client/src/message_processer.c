@@ -43,10 +43,10 @@ int process_message(char* message, Command* out) {
 		out->type = DATA;
 
 		size_t a;
-		byte* t = (byte*)& a;
+		unsigned char* t = (unsigned char*)& a;
 
 		for (int j = 0; j < 8; j++) {
-			t[j] = (byte)message[i];
+			t[j] = message[i];
 			i++;
 		}
 

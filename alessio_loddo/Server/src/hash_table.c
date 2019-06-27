@@ -1,7 +1,5 @@
 #include "hash_table.h"
 
-//static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-
 unsigned long hash(char* str) {
 	unsigned long hash = 5381;
 	int c;
@@ -13,18 +11,15 @@ unsigned long hash(char* str) {
 }
 
 int hash_init(hash_table* table) {
-	//pthread_mutex_lock(&lock);
 	table->table = malloc(START_SIZE * sizeof(data));
 	table->size = START_SIZE;
 	table->elements = 0;
-	//pthread_mutex_unlock(&lock);
 	return 1;
 }
 
 int hash_insert(hash_table* table, char* key, int value) {
 	unsigned long h = hash(key);
 	
-	//pthread_mutex_lock(&lock);
 	int i = 0;
 	while (table->table[h % table->size].used == 1 && strcmp(key, table->table[h % table->size].key) != 0 && i < table->size) {
 		i++;
@@ -50,14 +45,12 @@ int hash_insert(hash_table* table, char* key, int value) {
 					hash_insert(table, table->table[i].key, table->table[i].value);
 				}
 	}
-	//pthread_mutex_unlock(&lock);
+
 	return 1;
 }
 
 int hash_remove(hash_table* table, char* key) {
 	unsigned long h = hash(key);
-
-	//pthread_mutex_lock(&lock);
 	if (!table->table[h % table->size].used)
 		return -1;
 
@@ -72,14 +65,11 @@ int hash_remove(hash_table* table, char* key) {
 	table->table[h % table->size].used = 0;
 
 	table->elements--;
-	//pthread_mutex_unlock(&lock);
 	return 1;
 }
 
 int hash_get(hash_table* table, char* key) {
 	unsigned long h = hash(key);
-
-	//pthread_mutex_lock(&lock);
 	if(!table->table[h % table->size].used)
 		return -1;
 
@@ -90,7 +80,5 @@ int hash_get(hash_table* table, char* key) {
 	}
 	
 	if (table->table[h % table->size].used == 0 || i == table->size) return -1;
-	int res = table->table[h % table->size].value;
-	//pthread_mutex_unlock(&lock);
-	return res;
+	return table->table[h % table->size].value;
 }

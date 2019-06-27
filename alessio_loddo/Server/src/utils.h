@@ -39,5 +39,3 @@
 		fflush(stdout); \
 		perror(""); \
 	}
-
-typedef unsigned char byte;

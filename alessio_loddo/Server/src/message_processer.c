@@ -45,7 +45,7 @@ int process_message(char* message, int bytes, Command* out) {
 
 		size_t a;
 
-		byte* t = (byte*)& a;
+		unsigned char* t = (unsigned char*)& a;
 
 		for (int j = 0; j < 8; j++) {
 			t[j] = message[i];

@@ -9,10 +9,10 @@
 
 #define UNIX_PATH_MAX 108
 #define SOCKNAME "objstore.sock"
-#define BUFFER_SIZE 512
+#define BUFFER_SIZE 500
 
 static hash_table clients;
-//static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t lock;
 //static pthread_t signalProcesser;
 volatile sig_atomic_t print = 0;
 volatile sig_atomic_t running = 1;

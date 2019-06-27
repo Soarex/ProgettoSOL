@@ -6,7 +6,7 @@
 
 #define UNIX_PATH_MAX 108
 #define SOCKNAME "objstore.sock"
-#define BUFFER_SIZE 512
+#define BUFFER_SIZE 500
 
 int os_connect(char* name);
 int os_store(char* name, void* block, size_t len);
